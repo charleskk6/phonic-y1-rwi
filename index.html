@@ -3,55 +3,73 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Phonics 拼音特訓 — Year 1 Read Write Inc.</title>
+  <title>Phonics Quest — Year 1 拼音特訓</title>
   <meta name="description" content="Year 1 Phonics Screening Check 拼音特訓 — 錄音、聽自己讀音、聽正確讀音。" />
-  <!-- Andika: a literacy font with single-storey a / g, ideal for phonics -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Baloo+2:wght@500;600;700&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
+  <!-- ===================== LOGIN GATE ===================== -->
+  <div id="gate" class="gate">
+    <div class="gate__card">
+      <div class="gate__logo">🚀</div>
+      <h1 class="gate__title">Phonics Quest</h1>
+      <p class="gate__subtitle">Year 1 拼音特訓<br /><span>限受邀好友 · invite only</span></p>
+      <div id="gsiButton" class="gate__gsi"></div>
+      <p id="gateMsg" class="gate__msg"></p>
+      <p class="gate__hint">用 Google 帳戶登入。只有受邀請的電郵先可以入。</p>
+    </div>
+  </div>
+
+  <!-- ===================== APP ===================== -->
   <main class="app">
-    <!-- Header: progress + year -->
     <header class="topbar">
-      <span id="progress" class="topbar__item">題目: 1 / 40</span>
-      <span id="year" class="topbar__item topbar__item--right">年份: —</span>
+      <div class="brand">🚀 Phonics&nbsp;Quest</div>
+      <button class="iconbtn" id="signoutBtn" title="登出">登出 ⎋</button>
     </header>
 
+    <div class="meta">
+      <span id="progress" class="meta__progress">題目 1 / 40</span>
+      <span id="year" class="chip">—</span>
+    </div>
+    <div class="progress"><div class="progress__fill" id="progressFill"></div></div>
+
     <!-- Word card -->
-    <section class="card" id="card">
+    <section class="card" id="card" data-type="alien">
+      <span class="card__badge" id="category">怪獸字 👽</span>
       <span class="card__emoji" id="emoji">👽</span>
       <div class="card__word" id="word">…</div>
-      <span class="card__category" id="category">類別: 怪獸字 👽</span>
     </section>
 
     <!-- Training panel -->
     <section class="panel">
-      <p class="panel__title" id="status">錄音特訓面版：準備就緒</p>
-      <div class="panel__row">
-        <button class="btn btn--record" id="recordBtn">🎙️ 開始錄音</button>
-        <button class="btn btn--play-own" id="playOwnBtn" disabled>▶️ 聽自己讀音</button>
-      </div>
-      <div class="panel__row">
-        <button class="btn btn--correct" id="speakBtn">🔊 聽正確讀音</button>
-        <button class="btn btn--segment" id="segmentBtn">🧩 聽拆音 (Fred Talk)</button>
+      <p class="panel__title" id="status">錄音特訓：準備就緒</p>
+      <div class="panel__grid">
+        <button class="btn btn--rec" id="recordBtn">🎙️ 開始錄音</button>
+        <button class="btn btn--own" id="playOwnBtn" disabled>▶️ 聽自己讀音</button>
+        <button class="btn btn--say" id="speakBtn">🔊 聽正確讀音</button>
+        <button class="btn btn--seg" id="segmentBtn">🧩 聽拆音</button>
       </div>
     </section>
 
     <!-- Navigation -->
     <nav class="nav">
       <button class="btn btn--nav" id="prevBtn">⬅️ 上一個</button>
-      <button class="btn btn--shuffle" id="shuffleBtn">🔀 洗牌</button>
+      <button class="btn btn--shuffle" id="shuffleBtn" title="洗牌">🔀</button>
       <button class="btn btn--nav" id="nextBtn">下一個 ➡️</button>
     </nav>
 
     <footer class="footnote">
       Year 1 Phonics Screening Check · Read Write Inc.<br />
-      官方字庫：<a href="https://www.primarytools.co.uk/phonics-check-year-1-and-year-2/" target="_blank" rel="noopener">primarytools.co.uk</a>
+      字庫來源：<a href="https://www.primarytools.co.uk/phonics-check-year-1-and-year-2/" target="_blank" rel="noopener">primarytools.co.uk</a>
     </footer>
   </main>
 
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="js/gate.js"></script>
   <script src="js/words.js"></script>
   <script src="js/app.js"></script>
 </body>
