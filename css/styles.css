@@ -265,6 +265,24 @@ body.unlocked #gate { display: none; }
 .gate__subtitle { margin: 0 0 22px; font-weight: 600; color: #dfe4ff; }
 .gate__subtitle span { font-size: 12px; color: #aab2e0; font-weight: 500; }
 .gate__gsi { display: flex; justify-content: center; min-height: 44px; }
+.gbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  color: #3c4043;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 22px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(0,0,0,.25);
+  transition: transform .07s ease, filter .15s ease;
+}
+.gbtn:active { transform: scale(.97); }
+.gbtn:hover { filter: brightness(.97); }
 .gate__msg { min-height: 20px; margin: 14px 0 0; color: #ffb3b3; font-size: 14px; font-weight: 600; }
 .gate__hint { margin: 6px 0 0; font-size: 12px; color: #9aa3cf; line-height: 1.6; }
 

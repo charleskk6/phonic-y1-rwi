@@ -1,0 +1,24 @@
+rules_version = '2';
+
+// Phonics Quest — allowlist enforcement.
+//
+// A signed-in user may read ONLY the allowlist document whose ID equals
+// their own (lowercase) email. If that document exists, the app unlocks.
+// Nobody can list the collection, read others' docs, or write — the list
+// is managed by you in the Firebase console.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /allowlist/{email} {
+      allow get: if request.auth != null
+                 && request.auth.token.email_verified == true
+                 && request.auth.token.email.lower() == email;
+      allow list, write: if false;
+    }
+
+    // Everything else is locked down.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

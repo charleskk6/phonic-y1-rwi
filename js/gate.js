@@ -1,164 +1,123 @@
 /* ============================================================
- * Login gate — Google Sign-In + a HASHED email allowlist.
+ * Login gate — Firebase Auth (Google) + Firestore allowlist.
  *
- * IMPORTANT: Google's "Test users" list does NOT restrict plain
- * Sign-In with Google (it only gates the OAuth consent/scopes step).
- * So any Google account can complete sign-in — we must check here.
+ * WHO CAN GET IN is a list in Firestore, NOT in this repo:
+ *   collection "allowlist", one document per allowed email
+ *   (document ID = the lowercase email; the doc can be empty).
  *
- * To keep friends' emails OUT of this public source, we store only the
- * SHA-256 hash of each allowed email (normalised: trimmed + lowercase).
+ * Firestore SECURITY RULES enforce the check server-side, so editing
+ * this JS in a browser cannot grant access (see firestore.rules):
+ *   a signed-in user may only read allowlist/{their-own-email}.
+ *   Doc exists  -> allowed.   Doc missing -> denied.
  *
- * NOTE: This is a static, public site, so this remains OBFUSCATION, not
- * hardened security — someone who edits the JS could bypass it. For
- * truly enforced access, put the site behind Cloudflare Access.
+ * Manage friends in the Firebase console (Firestore → allowlist):
+ *   add a document  = invite      delete a document = revoke
+ * No code change, no redeploy.
  *
- * ---- HOW TO ADD A FRIEND --------------------------------------------
- * 1. Open the deployed site, open the browser console, and run:
- *        await pqHash("friend@gmail.com")
- *    (Gmail ignores dots/“+suffix”, so use their exact login email.)
- * 2. Copy the printed hash into ALLOWED_HASHES below.
- * 3. Commit & redeploy. The friend's email never appears in the repo.
- * ---------------------------------------------------------------------
+ * The firebaseConfig values below are PUBLIC by design (safe to ship);
+ * real protection comes from the security rules + Authorized domains.
+ *
+ * ---- SETUP (one time) ----------------------------------------------
+ *  1. console.firebase.google.com → Add project (free Spark plan).
+ *  2. Build → Authentication → Sign-in method → enable Google.
+ *  3. Authentication → Settings → Authorized domains → add
+ *       charleskk6.github.io   (localhost is allowed by default).
+ *  4. Build → Firestore Database → Create (production mode).
+ *  5. Firestore → Rules → paste firestore.rules from this repo →
+ *       Publish.
+ *  6. Firestore → Data → Start collection "allowlist" → add a
+ *       document whose ID is your own Google email (lowercase),
+ *       leaving fields empty. Repeat for each friend.
+ *  7. Project settings → Your apps → Web app → copy the config and
+ *       paste it into FIREBASE_CONFIG below. Commit & redeploy.
+ * --------------------------------------------------------------------
  * ============================================================ */
 
 (function () {
   "use strict";
 
-  const AUTH_CONFIG = {
-    // Public OAuth Client ID (not a secret).
-    CLIENT_ID: "193554635172-0k01k1tkem9atv96599gqjnv6tgu2eea.apps.googleusercontent.com",
-
-    // SHA-256 hashes of allowed emails (lowercase, trimmed). No plaintext.
-    ALLOWED_HASHES: [
-      "26bf7f0fdd5ec0ec29fd513a58c49caf7d3529d0df5b80416ed4123f5bfc8e18", // owner
-      // add friends' hashes here (generate with pqHash() in the console)
-    ],
+  // Paste your Firebase web config here (Project settings → Your apps).
+  const FIREBASE_CONFIG = {
+    apiKey: "REPLACE_WITH_FIREBASE_API_KEY",
+    authDomain: "REPLACE.firebaseapp.com",
+    projectId: "REPLACE",
+    appId: "REPLACE",
   };
 
-  const STORAGE_KEY = "pq_user";
-  const isConfigured = !/^REPLACE_/.test(AUTH_CONFIG.CLIENT_ID);
+  const isConfigured = !/^REPLACE/.test(FIREBASE_CONFIG.apiKey);
 
-  // SHA-256 → hex of a normalised email. Needs HTTPS (GitHub Pages is).
-  async function hashEmail(email) {
-    const norm = (email || "").trim().toLowerCase();
-    const bytes = new TextEncoder().encode(norm);
-    const digest = await crypto.subtle.digest("SHA-256", bytes);
-    return Array.from(new Uint8Array(digest))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
-  }
-
-  async function isAllowed(email) {
-    const h = await hashEmail(email);
-    return AUTH_CONFIG.ALLOWED_HASHES.includes(h);
-  }
-
-  // Console helper to mint hashes for new friends: await pqHash("a@b.com")
-  window.pqHash = async function (email) {
-    const h = await hashEmail(email);
-    console.log(`${(email || "").trim().toLowerCase()} →\n${h}`);
-    return h;
-  };
-
-  function unlock() {
-    document.body.classList.add("unlocked");
-  }
-
-  function showMsg(text) {
+  function unlock() { document.body.classList.add("unlocked"); }
+  function showMsg(t) {
     const m = document.getElementById("gateMsg");
-    if (m) m.textContent = text || "";
+    if (m) m.textContent = t || "";
   }
-
-  function decodeJwt(token) {
-    try {
-      const part = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-      const json = decodeURIComponent(
-        atob(part)
-          .split("")
-          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-          .join("")
-      );
-      return JSON.parse(json);
-    } catch (e) {
-      return null;
-    }
-  }
-
-  async function handleCredential(response) {
-    const data = decodeJwt(response.credential);
-    if (!data) {
-      showMsg("登入失敗，請再試一次。");
-      return;
-    }
-    // Access is enforced by Google (Test users list). Any verified
-    // account that Google lets through here is allowed in.
-    const email = (data.email || "").toLowerCase();
-    if (data.email_verified && (await isAllowed(email))) {
-      localStorage.setItem(STORAGE_KEY, email);
-      showMsg("");
-      unlock();
-    } else {
-      showMsg("此 Google 帳戶未經驗證 🙅");
-      try { google.accounts.id.disableAutoSelect(); } catch (e) {}
-    }
-  }
-
-  function signOut() {
-    localStorage.removeItem(STORAGE_KEY);
-    try { google.accounts.id.disableAutoSelect(); } catch (e) {}
-    location.reload();
-  }
-
-  function initGoogle() {
-    if (!(window.google && google.accounts && google.accounts.id)) {
-      return setTimeout(initGoogle, 150); // wait for the GIS script
-    }
-    google.accounts.id.initialize({
-      client_id: AUTH_CONFIG.CLIENT_ID,
-      callback: handleCredential,
-      auto_select: true,
-    });
-    const btn = document.getElementById("gsiButton");
-    if (btn) {
-      google.accounts.id.renderButton(btn, {
-        theme: "filled_blue",
-        size: "large",
-        shape: "pill",
-        text: "signin_with",
-        width: 260,
-      });
-    }
-    google.accounts.id.prompt(); // Google One Tap
-  }
-
   function showDevBadge() {
     const b = document.createElement("div");
     b.className = "devbadge";
-    b.textContent = "🔓 登入未啟用 (待設定 Google OAuth)";
+    b.textContent = "🔓 登入未啟用 (待設定 Firebase)";
     document.body.appendChild(b);
   }
 
-  async function start() {
-    const so = document.getElementById("signoutBtn");
-    if (so) so.addEventListener("click", signOut);
+  // Check Firestore allowlist for this email. Returns true if allowed.
+  // The security rules only let a user read their own doc, so a denied
+  // user gets a permission error here — which we treat as "not allowed".
+  async function isAllowed(db, email) {
+    try {
+      const snap = await db.collection("allowlist").doc(email).get();
+      return snap.exists;
+    } catch (e) {
+      return false; // permission-denied or offline → deny
+    }
+  }
 
-    // Fail open only if no Client ID is set, so the site stays usable.
-    if (!isConfigured) {
-      console.warn("[gate] OAuth not configured — site is OPEN.");
+  function start() {
+    const signinBtn = document.getElementById("signinBtn");
+    const signoutBtn = document.getElementById("signoutBtn");
+
+    // Fail open until Firebase is configured, so the site stays usable.
+    if (!isConfigured || !window.firebase) {
+      if (!window.firebase) console.warn("[gate] Firebase SDK not loaded.");
+      else console.warn("[gate] Firebase not configured — site is OPEN.");
       showDevBadge();
+      if (signinBtn) signinBtn.style.display = "none";
       unlock();
       return;
     }
 
-    // Returning user (signed in before on this device) → straight in.
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved && (await isAllowed(saved))) {
-      unlock();
-      return;
-    }
-    localStorage.removeItem(STORAGE_KEY); // revoked since last visit
+    firebase.initializeApp(FIREBASE_CONFIG);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const provider = new firebase.auth.GoogleAuthProvider();
 
-    initGoogle();
+    if (signinBtn) {
+      signinBtn.addEventListener("click", () => {
+        showMsg("");
+        auth.signInWithPopup(provider).catch((err) => {
+          showMsg("登入失敗，請再試一次。");
+          console.error(err);
+        });
+      });
+    }
+    if (signoutBtn) {
+      signoutBtn.addEventListener("click", () => auth.signOut());
+    }
+
+    // Single source of truth: re-checks the allowlist on every load and
+    // whenever auth state changes, so revoking in Firestore takes effect.
+    auth.onAuthStateChanged(async (user) => {
+      if (!user) {
+        document.body.classList.remove("unlocked");
+        return;
+      }
+      const email = (user.email || "").toLowerCase();
+      if (user.emailVerified && (await isAllowed(db, email))) {
+        showMsg("");
+        unlock();
+      } else {
+        showMsg(`抱歉，${email} 未獲授權 🙅`);
+        await auth.signOut();
+      }
+    });
   }
 
   if (document.readyState === "loading") {
