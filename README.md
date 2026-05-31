@@ -30,6 +30,38 @@ word is **`quemp`** — this app uses the official words.
 > The data in `js/words.js` is structured with a `graphemes` breakdown so that
 > per-sound **audio clips** can replace TTS later without changing the app.
 
+## Access control (Google sign-in)
+
+The site is gated by **Google Sign-In + an email allowlist** so it can be shared
+with a few friends. Config lives at the top of [`js/gate.js`](js/gate.js):
+
+```js
+const AUTH_CONFIG = {
+  CLIENT_ID: "REPLACE_WITH_YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com",
+  ALLOWED_EMAILS: ["kinkwai6@gmail.com", /* add friends... */],
+};
+```
+
+**Until `CLIENT_ID` is set, the gate "fails open"** (site stays usable, shows a
+🔓 badge). Once a real Client ID is in place, only allow-listed Google accounts
+get in.
+
+### One-time Google setup
+1. <https://console.cloud.google.com/> → create a project.
+2. **APIs & Services → OAuth consent screen** → *External* → add your email →
+   under **Test users** add every email that should have access.
+3. **APIs & Services → Credentials → Create credentials → OAuth client ID →
+   Web application**.
+4. **Authorised JavaScript origins** → add `https://charleskk6.github.io`
+   (and `http://localhost:8000` for local testing). Origin only, no path.
+5. Copy the **Client ID** into `AUTH_CONFIG.CLIENT_ID`, list the emails in
+   `ALLOWED_EMAILS`, commit, and redeploy.
+
+> ⚠️ This is a static site in a public repo, so this gate is **obfuscation, not
+> hardened security** — the allowlist check runs in the browser and the source
+> is public. For genuinely enforced access, put it behind **Cloudflare Access**
+> or a backend.
+
 ## Run locally
 
 It's static — any static server works (the mic needs `https://` or

@@ -20,6 +20,8 @@
     prevBtn:    document.getElementById("prevBtn"),
     nextBtn:    document.getElementById("nextBtn"),
     shuffleBtn: document.getElementById("shuffleBtn"),
+    progressFill: document.getElementById("progressFill"),
+    card: document.getElementById("card"),
   };
 
   // ---------- State ----------
@@ -53,12 +55,19 @@
 
     stopPlayback();
 
-    el.progress.textContent = `題目: ${index + 1} / ${deck.length}`;
-    el.year.textContent = `年份: ${item.year}`;
+    el.progress.textContent = `題目 ${index + 1} / ${deck.length}`;
+    el.year.textContent = `${item.year}`;
+    el.progressFill.style.width = `${((index + 1) / deck.length) * 100}%`;
 
     const isAlien = item.type === "alien";
     el.emoji.textContent = isAlien ? "👽" : "📖";
-    el.category.textContent = isAlien ? "類別: 怪獸字 👽" : "類別: 真字 📖";
+    el.category.textContent = isAlien ? "怪獸字 👽" : "真字 📖";
+    el.card.dataset.type = item.type;
+
+    // Replay the entrance animation on each new word.
+    el.card.classList.remove("card--enter");
+    void el.card.offsetWidth;
+    el.card.classList.add("card--enter");
 
     // Render each grapheme as a span so 拆音 can highlight it.
     el.word.innerHTML = "";
