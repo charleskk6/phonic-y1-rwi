@@ -32,40 +32,37 @@ word is **`quemp`** — this app uses the official words.
 
 ## Access control (Google sign-in)
 
-The site is gated by **Google Sign-In**, and **who is allowed is managed in the
-Google Cloud Console — not in this repo**. While the OAuth app is in *Testing*
-mode, only accounts on the **Test users** list can complete sign-in; Google
-enforces this server-side, so friends' emails never appear in the public source.
+The site is gated by **Google Sign-In** plus a **hashed email allowlist**.
 
-The only thing in code is the public OAuth Client ID
-([`js/gate.js`](js/gate.js)) — Client IDs are not secrets.
+> ⚠️ Google's **"Test users"** list does *not* restrict plain Sign-In with
+> Google — it only gates OAuth *consent*/scopes. So any Google account can
+> complete sign-in, and the email must be checked in the app. To keep friends'
+> emails out of this public repo, [`js/gate.js`](js/gate.js) stores only the
+> **SHA-256 hash** of each allowed email (normalised: trimmed + lowercase).
 
 ```js
 const AUTH_CONFIG = {
-  CLIENT_ID: "…apps.googleusercontent.com",
+  CLIENT_ID: "…apps.googleusercontent.com", // public, not a secret
+  ALLOWED_HASHES: [ "9d2bbf…", /* one SHA-256 hash per allowed email */ ],
 };
 ```
 
-### Manage who has access (no code change, no redeploy)
-1. <https://console.cloud.google.com/> → your project.
-2. **APIs & Services → OAuth consent screen → Test users**.
-3. **Add** a friend's Google email to invite them; **remove** to revoke.
+### Add or remove a friend
+1. Open the deployed site, open the **browser console**, and run:
+   ```js
+   await pqHash("friend@gmail.com")
+   ```
+2. Paste the printed hash into `ALLOWED_HASHES`, commit, and redeploy.
+   To revoke, delete that hash. The plaintext email never enters the repo.
 
-### One-time OAuth setup (already done for this project)
-1. **APIs & Services → Credentials → Create credentials → OAuth client ID →
-   Web application**.
-2. **Authorised JavaScript origins** → add `https://charleskk6.github.io`
-   (and `http://localhost:8000` for local testing). Origin only, no path.
-3. Put the **Client ID** into `AUTH_CONFIG.CLIENT_ID`.
+### One-time OAuth setup
+- **APIs & Services → Credentials → OAuth client ID → Web application**.
+- **Authorised JavaScript origins** → `https://charleskk6.github.io`
+  (and `http://localhost:8000` for local testing). Origin only, no path.
 
-> ⚠️ This is a static site in a public repo. The Google **Test users** list is
-> enforced by Google (strong), but be aware the app code/word-bank itself is
-> publicly readable. For fully private hosting, front the site with
-> **Cloudflare Access** or a backend.
->
-> Limits of *Testing* mode: up to **100 test users**, and users see a "Google
-> hasn't verified this app" screen they click through — normal for a personal
-> project.
+> ⚠️ Still a static, public site: this gate is **obfuscation, not hardened
+> security** — someone editing the JS could bypass it, and the code is public.
+> For genuinely enforced access, front the site with **Cloudflare Access**.
 
 ## Run locally
 
