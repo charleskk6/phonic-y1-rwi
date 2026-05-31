@@ -38,10 +38,13 @@
 
   // Paste your Firebase web config here (Project settings → Your apps).
   const FIREBASE_CONFIG = {
-    apiKey: "REPLACE_WITH_FIREBASE_API_KEY",
-    authDomain: "REPLACE.firebaseapp.com",
-    projectId: "REPLACE",
-    appId: "REPLACE",
+    apiKey: "AIzaSyCRgxmWaF8G9kOU13CyERwsjI8A1acmkgc",
+    authDomain: "y1-phonic-rwi-a6769.firebaseapp.com",
+    projectId: "y1-phonic-rwi-a6769",
+    storageBucket: "y1-phonic-rwi-a6769.firebasestorage.app",
+    messagingSenderId: "133369645722",
+    appId: "1:133369645722:web:e4657888e984ae41cead23",
+    measurementId: "G-9CQQFVWV40",
   };
 
   const isConfigured = !/^REPLACE/.test(FIREBASE_CONFIG.apiKey);
