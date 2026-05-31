@@ -2,8 +2,8 @@
  * Login gate — Google Sign-In + a HASHED email allowlist.
  *
  * IMPORTANT: Google's "Test users" list does NOT restrict plain
- * Sign-In with Google (it only gates OAuth *consent*/scopes). So any
- * Google account can complete sign-in — we must check the email here.
+ * Sign-In with Google (it only gates the OAuth consent/scopes step).
+ * So any Google account can complete sign-in — we must check here.
  *
  * To keep friends' emails OUT of this public source, we store only the
  * SHA-256 hash of each allowed email (normalised: trimmed + lowercase).
@@ -30,7 +30,7 @@
 
     // SHA-256 hashes of allowed emails (lowercase, trimmed). No plaintext.
     ALLOWED_HASHES: [
-      "9d2bbf5e6c9f78aa3e91d0d4e0a8e7c6b5f4a3d2c1b0a9e8d7c6f5b4a3e2d1c0", // owner
+      "26bf7f0fdd5ec0ec29fd513a58c49caf7d3529d0df5b80416ed4123f5bfc8e18", // owner
       // add friends' hashes here (generate with pqHash() in the console)
     ],
   };
