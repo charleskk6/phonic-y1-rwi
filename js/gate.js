@@ -15,7 +15,7 @@
   const AUTH_CONFIG = {
     // Google Cloud Console → APIs & Services → Credentials →
     // "OAuth client ID" (Web application). Paste the Client ID here.
-    CLIENT_ID: "REPLACE_WITH_YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com",
+    CLIENT_ID: "193554635172-0k01k1tkem9atv96599gqjnv6tgu2eea.apps.googleusercontent.com",
 
     // Only these Google accounts may enter (lowercase). Add friends here.
     ALLOWED_EMAILS: [
