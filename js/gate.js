@@ -1,38 +1,34 @@
 /* ============================================================
- * Login gate — Google Sign-In with an email allowlist.
+ * Login gate — Google Sign-In, access managed in Google Cloud.
  *
- * NOTE: This is a static site, so this gate is OBFUSCATION, not
- * hardened security. It restricts the friendly path for casual
- * sharing. Anything truly private needs a backend / Cloudflare Access.
+ * WHO CAN GET IN is controlled in the Google Cloud Console, NOT here:
+ *   APIs & Services → OAuth consent screen → Test users
+ * Only those Google accounts can complete sign-in while the app is in
+ * "Testing" mode. Google enforces this server-side, so the friends'
+ * emails never appear in this (public) source code.
+ *
+ * To add/remove a friend: edit the Test users list in GCP. No code
+ * change, no redeploy needed.
+ *
+ * NOTE: Client IDs are not secrets — it is safe for this to be public.
+ * For genuinely hardened/private access, front the site with
+ * Cloudflare Access or a backend.
  * ============================================================ */
 
 (function () {
   "use strict";
 
   // ============================================================
-  // CONFIG — edit these two values, then redeploy.
+  // CONFIG — just the public OAuth Client ID. The allowlist lives
+  // in GCP → OAuth consent screen → Test users (see header above).
   // ============================================================
   const AUTH_CONFIG = {
-    // Google Cloud Console → APIs & Services → Credentials →
-    // "OAuth client ID" (Web application). Paste the Client ID here.
     CLIENT_ID: "193554635172-0k01k1tkem9atv96599gqjnv6tgu2eea.apps.googleusercontent.com",
-
-    // Only these Google accounts may enter (lowercase). Add friends here.
-    ALLOWED_EMAILS: [
-      "kinkwai6@gmail.com",
-      // "friend1@gmail.com",
-      // "friend2@gmail.com",
-    ],
   };
   // ============================================================
 
   const STORAGE_KEY = "pq_user";
   const isConfigured = !/^REPLACE_/.test(AUTH_CONFIG.CLIENT_ID);
-
-  function allowed(email) {
-    const e = (email || "").toLowerCase();
-    return AUTH_CONFIG.ALLOWED_EMAILS.some((x) => x.toLowerCase() === e);
-  }
 
   function unlock() {
     document.body.classList.add("unlocked");
@@ -65,13 +61,15 @@
       showMsg("登入失敗，請再試一次。");
       return;
     }
+    // Access is enforced by Google (Test users list). Any verified
+    // account that Google lets through here is allowed in.
     const email = (data.email || "").toLowerCase();
-    if (data.email_verified && allowed(email)) {
+    if (data.email_verified) {
       localStorage.setItem(STORAGE_KEY, email);
       showMsg("");
       unlock();
     } else {
-      showMsg(`抱歉，${email} 未獲授權 🙅`);
+      showMsg("此 Google 帳戶未經驗證 🙅");
       try { google.accounts.id.disableAutoSelect(); } catch (e) {}
     }
   }
@@ -126,9 +124,9 @@
       return;
     }
 
-    // Returning, still-allowed user → straight in.
+    // Returning user (signed in before on this device) → straight in.
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved && allowed(saved)) {
+    if (saved) {
       unlock();
       return;
     }

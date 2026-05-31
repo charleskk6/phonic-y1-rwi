@@ -32,35 +32,40 @@ word is **`quemp`** — this app uses the official words.
 
 ## Access control (Google sign-in)
 
-The site is gated by **Google Sign-In + an email allowlist** so it can be shared
-with a few friends. Config lives at the top of [`js/gate.js`](js/gate.js):
+The site is gated by **Google Sign-In**, and **who is allowed is managed in the
+Google Cloud Console — not in this repo**. While the OAuth app is in *Testing*
+mode, only accounts on the **Test users** list can complete sign-in; Google
+enforces this server-side, so friends' emails never appear in the public source.
+
+The only thing in code is the public OAuth Client ID
+([`js/gate.js`](js/gate.js)) — Client IDs are not secrets.
 
 ```js
 const AUTH_CONFIG = {
-  CLIENT_ID: "REPLACE_WITH_YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com",
-  ALLOWED_EMAILS: ["kinkwai6@gmail.com", /* add friends... */],
+  CLIENT_ID: "…apps.googleusercontent.com",
 };
 ```
 
-**Until `CLIENT_ID` is set, the gate "fails open"** (site stays usable, shows a
-🔓 badge). Once a real Client ID is in place, only allow-listed Google accounts
-get in.
+### Manage who has access (no code change, no redeploy)
+1. <https://console.cloud.google.com/> → your project.
+2. **APIs & Services → OAuth consent screen → Test users**.
+3. **Add** a friend's Google email to invite them; **remove** to revoke.
 
-### One-time Google setup
-1. <https://console.cloud.google.com/> → create a project.
-2. **APIs & Services → OAuth consent screen** → *External* → add your email →
-   under **Test users** add every email that should have access.
-3. **APIs & Services → Credentials → Create credentials → OAuth client ID →
+### One-time OAuth setup (already done for this project)
+1. **APIs & Services → Credentials → Create credentials → OAuth client ID →
    Web application**.
-4. **Authorised JavaScript origins** → add `https://charleskk6.github.io`
+2. **Authorised JavaScript origins** → add `https://charleskk6.github.io`
    (and `http://localhost:8000` for local testing). Origin only, no path.
-5. Copy the **Client ID** into `AUTH_CONFIG.CLIENT_ID`, list the emails in
-   `ALLOWED_EMAILS`, commit, and redeploy.
+3. Put the **Client ID** into `AUTH_CONFIG.CLIENT_ID`.
 
-> ⚠️ This is a static site in a public repo, so this gate is **obfuscation, not
-> hardened security** — the allowlist check runs in the browser and the source
-> is public. For genuinely enforced access, put it behind **Cloudflare Access**
-> or a backend.
+> ⚠️ This is a static site in a public repo. The Google **Test users** list is
+> enforced by Google (strong), but be aware the app code/word-bank itself is
+> publicly readable. For fully private hosting, front the site with
+> **Cloudflare Access** or a backend.
+>
+> Limits of *Testing* mode: up to **100 test users**, and users see a "Google
+> hasn't verified this app" screen they click through — normal for a personal
+> project.
 
 ## Run locally
 
