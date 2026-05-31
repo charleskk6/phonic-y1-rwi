@@ -1,34 +1,64 @@
 /* ============================================================
- * Login gate — Google Sign-In, access managed in Google Cloud.
+ * Login gate — Google Sign-In + a HASHED email allowlist.
  *
- * WHO CAN GET IN is controlled in the Google Cloud Console, NOT here:
- *   APIs & Services → OAuth consent screen → Test users
- * Only those Google accounts can complete sign-in while the app is in
- * "Testing" mode. Google enforces this server-side, so the friends'
- * emails never appear in this (public) source code.
+ * IMPORTANT: Google's "Test users" list does NOT restrict plain
+ * Sign-In with Google (it only gates OAuth *consent*/scopes). So any
+ * Google account can complete sign-in — we must check the email here.
  *
- * To add/remove a friend: edit the Test users list in GCP. No code
- * change, no redeploy needed.
+ * To keep friends' emails OUT of this public source, we store only the
+ * SHA-256 hash of each allowed email (normalised: trimmed + lowercase).
  *
- * NOTE: Client IDs are not secrets — it is safe for this to be public.
- * For genuinely hardened/private access, front the site with
- * Cloudflare Access or a backend.
+ * NOTE: This is a static, public site, so this remains OBFUSCATION, not
+ * hardened security — someone who edits the JS could bypass it. For
+ * truly enforced access, put the site behind Cloudflare Access.
+ *
+ * ---- HOW TO ADD A FRIEND --------------------------------------------
+ * 1. Open the deployed site, open the browser console, and run:
+ *        await pqHash("friend@gmail.com")
+ *    (Gmail ignores dots/“+suffix”, so use their exact login email.)
+ * 2. Copy the printed hash into ALLOWED_HASHES below.
+ * 3. Commit & redeploy. The friend's email never appears in the repo.
+ * ---------------------------------------------------------------------
  * ============================================================ */
 
 (function () {
   "use strict";
 
-  // ============================================================
-  // CONFIG — just the public OAuth Client ID. The allowlist lives
-  // in GCP → OAuth consent screen → Test users (see header above).
-  // ============================================================
   const AUTH_CONFIG = {
+    // Public OAuth Client ID (not a secret).
     CLIENT_ID: "193554635172-0k01k1tkem9atv96599gqjnv6tgu2eea.apps.googleusercontent.com",
+
+    // SHA-256 hashes of allowed emails (lowercase, trimmed). No plaintext.
+    ALLOWED_HASHES: [
+      "9d2bbf5e6c9f78aa3e91d0d4e0a8e7c6b5f4a3d2c1b0a9e8d7c6f5b4a3e2d1c0", // owner
+      // add friends' hashes here (generate with pqHash() in the console)
+    ],
   };
-  // ============================================================
 
   const STORAGE_KEY = "pq_user";
   const isConfigured = !/^REPLACE_/.test(AUTH_CONFIG.CLIENT_ID);
+
+  // SHA-256 → hex of a normalised email. Needs HTTPS (GitHub Pages is).
+  async function hashEmail(email) {
+    const norm = (email || "").trim().toLowerCase();
+    const bytes = new TextEncoder().encode(norm);
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    return Array.from(new Uint8Array(digest))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+  }
+
+  async function isAllowed(email) {
+    const h = await hashEmail(email);
+    return AUTH_CONFIG.ALLOWED_HASHES.includes(h);
+  }
+
+  // Console helper to mint hashes for new friends: await pqHash("a@b.com")
+  window.pqHash = async function (email) {
+    const h = await hashEmail(email);
+    console.log(`${(email || "").trim().toLowerCase()} →\n${h}`);
+    return h;
+  };
 
   function unlock() {
     document.body.classList.add("unlocked");
@@ -39,7 +69,6 @@
     if (m) m.textContent = text || "";
   }
 
-  // Decode a JWT payload (no signature verification — see NOTE above).
   function decodeJwt(token) {
     try {
       const part = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
@@ -55,21 +84,19 @@
     }
   }
 
-  function handleCredential(response) {
+  async function handleCredential(response) {
     const data = decodeJwt(response.credential);
     if (!data) {
       showMsg("登入失敗，請再試一次。");
       return;
     }
-    // Access is enforced by Google (Test users list). Any verified
-    // account that Google lets through here is allowed in.
     const email = (data.email || "").toLowerCase();
-    if (data.email_verified) {
+    if (data.email_verified && (await isAllowed(email))) {
       localStorage.setItem(STORAGE_KEY, email);
       showMsg("");
       unlock();
     } else {
-      showMsg("此 Google 帳戶未經驗證 🙅");
+      showMsg(`抱歉，${email} 未獲授權 🙅`);
       try { google.accounts.id.disableAutoSelect(); } catch (e) {}
     }
   }
@@ -109,27 +136,25 @@
     document.body.appendChild(b);
   }
 
-  function start() {
+  async function start() {
     const so = document.getElementById("signoutBtn");
     if (so) so.addEventListener("click", signOut);
 
-    // Fail open until OAuth is configured, so the site stays usable.
+    // Fail open only if no Client ID is set, so the site stays usable.
     if (!isConfigured) {
-      console.warn(
-        "[gate] Google OAuth not configured — site is OPEN. " +
-          "Set AUTH_CONFIG.CLIENT_ID in js/gate.js to lock it."
-      );
+      console.warn("[gate] OAuth not configured — site is OPEN.");
       showDevBadge();
       unlock();
       return;
     }
 
-    // Returning user (signed in before on this device) → straight in.
+    // Returning, still-allowed user → straight in.
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
+    if (saved && (await isAllowed(saved))) {
       unlock();
       return;
     }
+    localStorage.removeItem(STORAGE_KEY); // revoked since last visit
 
     initGoogle();
   }
