@@ -30,39 +30,42 @@ word is **`quemp`** — this app uses the official words.
 > The data in `js/words.js` is structured with a `graphemes` breakdown so that
 > per-sound **audio clips** can replace TTS later without changing the app.
 
-## Access control (Google sign-in)
+## Access control (Firebase Auth + Firestore allowlist)
 
-The site is gated by **Google Sign-In** plus a **hashed email allowlist**.
+The site is gated by **Firebase Authentication (Google)**, and the list of who
+may enter lives in **Firestore** — not in this repo. **Firestore security rules
+([`firestore.rules`](firestore.rules)) enforce it server-side**, so editing the
+JS in a browser cannot grant access: a signed-in user may only read the
+allowlist document matching *their own* email. Doc exists → allowed.
 
-> ⚠️ Google's **"Test users"** list does *not* restrict plain Sign-In with
-> Google — it only gates OAuth *consent*/scopes. So any Google account can
-> complete sign-in, and the email must be checked in the app. To keep friends'
-> emails out of this public repo, [`js/gate.js`](js/gate.js) stores only the
-> **SHA-256 hash** of each allowed email (normalised: trimmed + lowercase).
+Free on Firebase's **Spark** plan (no Cloud Functions used). Hosting stays on
+GitHub Pages; only the Firebase SDK is added.
 
-```js
-const AUTH_CONFIG = {
-  CLIENT_ID: "…apps.googleusercontent.com", // public, not a secret
-  ALLOWED_HASHES: [ "9d2bbf…", /* one SHA-256 hash per allowed email */ ],
-};
-```
+### Manage who has access (no code change, no redeploy)
+Firebase console → **Firestore Database → `allowlist` collection**:
+- **Add a document** whose ID is the friend's lowercase email (fields can be
+  empty) = invite.
+- **Delete that document** = revoke (takes effect on their next page load).
 
-### Add or remove a friend
-1. Open the deployed site, open the **browser console**, and run:
-   ```js
-   await pqHash("friend@gmail.com")
-   ```
-2. Paste the printed hash into `ALLOWED_HASHES`, commit, and redeploy.
-   To revoke, delete that hash. The plaintext email never enters the repo.
+### One-time setup
+1. <https://console.firebase.google.com/> → **Add project** (Spark/free).
+2. **Authentication → Sign-in method →** enable **Google**.
+3. **Authentication → Settings → Authorized domains →** add
+   `charleskk6.github.io` (`localhost` is allowed by default).
+4. **Firestore Database → Create** (production mode).
+5. **Firestore → Rules →** paste [`firestore.rules`](firestore.rules) → Publish.
+6. **Firestore → Data →** create collection `allowlist`, add a document per
+   allowed email (ID = the email).
+7. **Project settings → Your apps → Web app →** copy the config into
+   `FIREBASE_CONFIG` at the top of [`js/gate.js`](js/gate.js). Commit & redeploy.
 
-### One-time OAuth setup
-- **APIs & Services → Credentials → OAuth client ID → Web application**.
-- **Authorised JavaScript origins** → `https://charleskk6.github.io`
-  (and `http://localhost:8000` for local testing). Origin only, no path.
-
-> ⚠️ Still a static, public site: this gate is **obfuscation, not hardened
-> security** — someone editing the JS could bypass it, and the code is public.
-> For genuinely enforced access, front the site with **Cloudflare Access**.
+> The `firebaseConfig` values (apiKey etc.) are **public by design** — they're
+> identifiers, not secrets. Protection comes from the security rules +
+> authorized domains. Until `FIREBASE_CONFIG` is filled in, the gate "fails
+> open" (site usable, shows a 🔓 badge).
+>
+> Note: the app's static files/word-bank are still served publicly by GitHub
+> Pages; the *gate and data access* are what Firebase enforces.
 
 ## Run locally
 
