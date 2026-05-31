@@ -101,6 +101,7 @@
     if (signoutBtn) {
       signoutBtn.addEventListener("click", () => auth.signOut());
     }
+    localStorage.removeItem(STORAGE_KEY); // revoked since last visit
 
     // Single source of truth: re-checks the allowlist on every load and
     // whenever auth state changes, so revoking in Firestore takes effect.
