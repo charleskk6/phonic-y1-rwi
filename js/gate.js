@@ -90,13 +90,15 @@
       showMsg("登入失敗，請再試一次。");
       return;
     }
+    // Access is enforced by Google (Test users list). Any verified
+    // account that Google lets through here is allowed in.
     const email = (data.email || "").toLowerCase();
     if (data.email_verified && (await isAllowed(email))) {
       localStorage.setItem(STORAGE_KEY, email);
       showMsg("");
       unlock();
     } else {
-      showMsg(`抱歉，${email} 未獲授權 🙅`);
+      showMsg("此 Google 帳戶未經驗證 🙅");
       try { google.accounts.id.disableAutoSelect(); } catch (e) {}
     }
   }
@@ -148,7 +150,7 @@
       return;
     }
 
-    // Returning, still-allowed user → straight in.
+    // Returning user (signed in before on this device) → straight in.
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved && (await isAllowed(saved))) {
       unlock();
