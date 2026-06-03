@@ -56,7 +56,7 @@
     stopPlayback();
 
     el.progress.textContent = `題目 ${index + 1} / ${deck.length}`;
-    el.year.textContent = `${item.year}`;
+    el.year.textContent = `${item.set || ""}`;
     el.progressFill.style.width = `${((index + 1) / deck.length) * 100}%`;
 
     const isAlien = item.type === "alien";
@@ -74,7 +74,7 @@
     (item.graphemes || [item.word]).forEach((g) => {
       const span = document.createElement("span");
       span.className = "gp";
-      span.textContent = g.replace("_", ""); // a_e split digraph -> "ae" shown together
+      span.textContent = g;
       el.word.appendChild(span);
     });
 
@@ -152,12 +152,13 @@
     const map = {
       a: "ah", e: "eh", i: "ih", o: "oh", u: "uh",
       c: "kuh", k: "kuh", ck: "kuh", g: "guh", h: "huh",
-      ng: "ng", th: "th", sh: "sh", ch: "ch", qu: "kw",
+      ng: "ng", th: "th", sh: "sh", ch: "ch", qu: "kw", ph: "ff", wh: "wuh",
       oo: "oo", ee: "ee", or: "or", er: "er", ar: "ar",
-      ur: "ur", ou: "ow", ai: "ay", ay: "ay", ew: "you",
-      ll: "luh", zz: "zzz",
+      ur: "ur", ir: "ur", ou: "ow", ow: "ow",
+      ai: "ay", ay: "ay", ew: "you", oi: "oy", oy: "oy",
+      au: "or", aw: "or", air: "air", igh: "eye", ie: "eye", ey: "ee",
+      ll: "luh", ss: "sss", zz: "zzz", x: "ks",
     };
-    if (g.includes("_")) return g.replace("_", ""); // split digraph: let TTS try
     return map[g] || g;
   }
 
