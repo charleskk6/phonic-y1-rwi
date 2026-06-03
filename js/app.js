@@ -168,22 +168,33 @@
     spans.forEach((s) => s.classList.remove("active"));
   }
 
-  // Nudge TTS toward an RWI Speed Sound rather than a letter name.
+  // Nudge TTS toward an RWI Speed Sound rather than a letter NAME.
+  // Anything not listed falls back to "<letter>uh" so a stray consonant
+  // is never read as its alphabet name (e.g. "t" → "tee").
   function graphemeToSpeech(g) {
     const map = {
-      a: "ah", e: "eh", i: "ih", o: "oh", u: "uh",
-      c: "kuh", k: "kuh", ck: "kuh", g: "guh", h: "huh",
-      ng: "ng", nk: "nk", th: "th", sh: "sh", ch: "ch", qu: "kw", ph: "ff", wh: "wuh",
+      // Short vowels
+      a: "ah", e: "eh", i: "ih", o: "o", u: "uh",
+      // Single consonants — phonetic spellings TTS reads as the sound
+      b: "buh", c: "kuh", d: "duh", f: "ff", g: "guh", h: "huh",
+      j: "juh", k: "kuh", l: "ll", m: "mm", n: "nn", p: "puh",
+      r: "ruh", s: "sss", t: "tuh", v: "vv", w: "wuh", y: "yuh", z: "zz",
+      // Consonant digraphs / special graphemes
+      ck: "kuh", ng: " nng", nk: "ngk", th: "th", sh: "shh", ch: "tch",
+      qu: "kwuh", ph: "ff", wh: "wuh", x: "ks",
+      ll: "ll", ss: "sss", zz: "zz",
+      // Long vowels / vowel digraphs
       oo: "oo", ee: "ee", or: "or", er: "er", ar: "ar",
       ur: "ur", ir: "ur", ou: "ow", ow: "ow",
       ai: "ay", ay: "ay", ew: "you", ue: "you", oi: "oy", oy: "oy",
       au: "or", aw: "or", air: "air", igh: "eye", ie: "eye", ey: "ee",
-      ll: "luh", ss: "sss", zz: "zzz", x: "ks",
       // Split digraphs (magic-e): the vowel says its long name; ~e is silent.
       "a~": "ay", "e~": "ee", "i~": "eye", "o~": "oh", "u~": "you",
       "~e": "",
     };
-    return map[g] || g;
+    if (g in map) return map[g];
+    // Unknown single letter → make a clear consonant sound, not its name.
+    return g.length === 1 ? g + "uh" : g;
   }
 
   let voicesCache = null;
