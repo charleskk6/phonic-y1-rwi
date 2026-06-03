@@ -128,6 +128,8 @@ const WORD_BANK = [
   { word: "strap",     type: "real",  set: "練習 3", graphemes: ["s","t","r","a","p"] },
   { word: "trains",    type: "real",  set: "練習 3", graphemes: ["t","r","ai","n","s"] },
   { word: "finger",    type: "real",  set: "練習 3", graphemes: ["f","i","ng","e","r"] },
+  { word: "newt",      type: "real",  set: "練習 3", graphemes: ["n","e","w","t"] },
+  { word: "slide",     type: "real",  set: "練習 3", graphemes: ["s","l","i","d","e"] },
 
   // ============ 練習 3 — Nonsense Alien Words ============
   { word: "steck",     type: "alien", set: "練習 3", graphemes: ["s","t","e","ck"] },
