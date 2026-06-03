@@ -128,6 +128,28 @@ const WORD_BANK = [
   { word: "strap",     type: "real",  set: "練習 3", graphemes: ["s","t","r","a","p"] },
   { word: "trains",    type: "real",  set: "練習 3", graphemes: ["t","r","ai","n","s"] },
   { word: "finger",    type: "real",  set: "練習 3", graphemes: ["f","i","ng","e","r"] },
+
+  // ============ 練習 3 — Nonsense Alien Words ============
+  { word: "steck",     type: "alien", set: "練習 3", graphemes: ["s","t","e","ck"] },
+  { word: "bim",       type: "alien", set: "練習 3", graphemes: ["b","i","m"] },
+  { word: "hild",      type: "alien", set: "練習 3", graphemes: ["h","i","l","d"] },
+  { word: "vap",       type: "alien", set: "練習 3", graphemes: ["v","a","p"] },
+  { word: "quemp",     type: "alien", set: "練習 3", graphemes: ["qu","e","m","p"] },
+  { word: "spron",     type: "alien", set: "練習 3", graphemes: ["s","p","r","o","n"] },
+  { word: "geck",      type: "alien", set: "練習 3", graphemes: ["g","e","ck"] },
+  { word: "blurst",    type: "alien", set: "練習 3", graphemes: ["b","l","ur","s","t"] },
+  { word: "ulf",       type: "alien", set: "練習 3", graphemes: ["u","l","f"] },
+  { word: "voo",       type: "alien", set: "練習 3", graphemes: ["v","oo"] },
+  { word: "chom",      type: "alien", set: "練習 3", graphemes: ["ch","o","m"] },
+  { word: "snemp",     type: "alien", set: "練習 3", graphemes: ["s","n","e","m","p"] },
+  { word: "tord",      type: "alien", set: "練習 3", graphemes: ["t","or","d"] },
+  { word: "fape",      type: "alien", set: "練習 3", graphemes: ["f","a","p","e"] },
+  { word: "thazz",     type: "alien", set: "練習 3", graphemes: ["th","a","zz"] },
+  { word: "jound",     type: "alien", set: "練習 3", graphemes: ["j","ou","n","d"] },
+  { word: "blan",      type: "alien", set: "練習 3", graphemes: ["b","l","a","n"] },
+  { word: "stroft",    type: "alien", set: "練習 3", graphemes: ["s","t","r","o","f","t"] },
+  { word: "tox",       type: "alien", set: "練習 3", graphemes: ["t","o","x"] },
+  { word: "terg",      type: "alien", set: "練習 3", graphemes: ["t","er","g"] },
 ];
 
 // Expose to the app (works as a plain <script>, no modules needed).
