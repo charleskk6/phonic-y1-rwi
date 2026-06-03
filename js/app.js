@@ -70,11 +70,12 @@
     el.card.classList.add("card--enter");
 
     // Render each grapheme as a span so 拆音 can highlight it.
+    // A "~" marks a split digraph (magic-e); strip it for display.
     el.word.innerHTML = "";
     (item.graphemes || [item.word]).forEach((g) => {
       const span = document.createElement("span");
       span.className = "gp";
-      span.textContent = g;
+      span.textContent = g.replace("~", "");
       el.word.appendChild(span);
     });
 
@@ -112,6 +113,26 @@
     window.speechSynthesis.speak(u);
   }
 
+  // Build RWI "sounds" from the grapheme list. A split digraph is stored as
+  // two graphemes ("a~" … "~e") but is ONE sound — merge them, keeping both
+  // letter positions so 拆音 highlights the vowel and the magic-e together.
+  function buildSounds(graphemes) {
+    const sounds = [];
+    graphemes.forEach((g, i) => {
+      if (g.startsWith("~")) {
+        // Silent magic-e: attach its position to the open split-digraph sound.
+        const open = sounds.find((s) => s.split && s.eIndex == null);
+        if (open) open.indices.push(i), (open.eIndex = i);
+        else sounds.push({ speech: graphemeToSpeech(g), indices: [i] });
+      } else if (g.endsWith("~")) {
+        sounds.push({ speech: graphemeToSpeech(g), indices: [i], split: true });
+      } else {
+        sounds.push({ speech: graphemeToSpeech(g), indices: [i] });
+      }
+    });
+    return sounds;
+  }
+
   // 拆音 / Fred Talk — say each sound, highlight it, then blend the whole word.
   function segmentWord() {
     const item = current();
@@ -119,14 +140,14 @@
     window.speechSynthesis.cancel();
 
     const spans = el.word.querySelectorAll(".gp");
-    const sounds = item.graphemes || [item.word];
+    const sounds = buildSounds(item.graphemes || [item.word]);
 
-    sounds.forEach((g, i) => {
-      const u = new SpeechSynthesisUtterance(graphemeToSpeech(g));
+    sounds.forEach((s) => {
+      const u = new SpeechSynthesisUtterance(s.speech);
       u.lang = "en-GB";
       u.rate = 0.7;
       pickEnglishVoice(u);
-      u.onstart = () => highlight(spans, i);
+      u.onstart = () => highlight(spans, s.indices);
       window.speechSynthesis.speak(u);
     });
 
@@ -135,29 +156,32 @@
     whole.lang = "en-GB";
     whole.rate = 0.85;
     pickEnglishVoice(whole);
-    whole.onstart = () => highlight(spans, -1);
+    whole.onstart = () => highlight(spans, []);
     whole.onend = () => clearHighlight(spans);
     window.speechSynthesis.speak(whole);
   }
 
-  function highlight(spans, i) {
-    spans.forEach((s, idx) => s.classList.toggle("active", idx === i));
+  function highlight(spans, indices) {
+    spans.forEach((s, idx) => s.classList.toggle("active", indices.includes(idx)));
   }
   function clearHighlight(spans) {
     spans.forEach((s) => s.classList.remove("active"));
   }
 
-  // Nudge TTS toward a phoneme rather than a letter name where helpful.
+  // Nudge TTS toward an RWI Speed Sound rather than a letter name.
   function graphemeToSpeech(g) {
     const map = {
       a: "ah", e: "eh", i: "ih", o: "oh", u: "uh",
       c: "kuh", k: "kuh", ck: "kuh", g: "guh", h: "huh",
-      ng: "ng", th: "th", sh: "sh", ch: "ch", qu: "kw", ph: "ff", wh: "wuh",
+      ng: "ng", nk: "nk", th: "th", sh: "sh", ch: "ch", qu: "kw", ph: "ff", wh: "wuh",
       oo: "oo", ee: "ee", or: "or", er: "er", ar: "ar",
       ur: "ur", ir: "ur", ou: "ow", ow: "ow",
-      ai: "ay", ay: "ay", ew: "you", oi: "oy", oy: "oy",
+      ai: "ay", ay: "ay", ew: "you", ue: "you", oi: "oy", oy: "oy",
       au: "or", aw: "or", air: "air", igh: "eye", ie: "eye", ey: "ee",
       ll: "luh", ss: "sss", zz: "zzz", x: "ks",
+      // Split digraphs (magic-e): the vowel says its long name; ~e is silent.
+      "a~": "ay", "e~": "ee", "i~": "eye", "o~": "oh", "u~": "you",
+      "~e": "",
     };
     return map[g] || g;
   }
