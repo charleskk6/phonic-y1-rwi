@@ -116,49 +116,105 @@
   // Build RWI "sounds" from the grapheme list. A split digraph is stored as
   // two graphemes ("a~" … "~e") but is ONE sound — merge them, keeping both
   // letter positions so 拆音 highlights the vowel and the magic-e together.
+  // Each sound also carries a `key` (canonical id) used to find an audio clip.
   function buildSounds(graphemes) {
     const sounds = [];
     graphemes.forEach((g, i) => {
       if (g.startsWith("~")) {
         // Silent magic-e: attach its position to the open split-digraph sound.
         const open = sounds.find((s) => s.split && s.eIndex == null);
-        if (open) open.indices.push(i), (open.eIndex = i);
-        else sounds.push({ speech: graphemeToSpeech(g), indices: [i] });
+        if (open) { open.indices.push(i); open.eIndex = i; }
+        else sounds.push({ key: soundKey(g), speech: graphemeToSpeech(g), indices: [i] });
       } else if (g.endsWith("~")) {
-        sounds.push({ speech: graphemeToSpeech(g), indices: [i], split: true });
+        sounds.push({ key: soundKey(g), speech: graphemeToSpeech(g), indices: [i], split: true });
       } else {
-        sounds.push({ speech: graphemeToSpeech(g), indices: [i] });
+        sounds.push({ key: soundKey(g), speech: graphemeToSpeech(g), indices: [i] });
       }
     });
     return sounds;
   }
 
-  // 拆音 / Fred Talk — say each sound, highlight it, then blend the whole word.
-  function segmentWord() {
+  // Canonical, filename-safe sound id. Split digraph "a~" → "a_e".
+  function soundKey(g) {
+    if (g.endsWith("~")) return g[0] + "_e";
+    return g;
+  }
+
+  // ---- Audio clips (optional, drop-in) -------------------------------------
+  // If a file exists at audio/sounds/<key>.mp3 it is used for 拆音; otherwise
+  // we fall back to TTS. Availability is probed once and cached.
+  const CLIP_DIR = "audio/sounds/";
+  const clipCache = {}; // key -> HTMLAudioElement (or null if missing)
+
+  function getClip(key) {
+    if (key in clipCache) return Promise.resolve(clipCache[key]);
+    return new Promise((resolve) => {
+      const audio = new Audio(CLIP_DIR + encodeURIComponent(key) + ".mp3");
+      audio.addEventListener("canplaythrough", () => { clipCache[key] = audio; resolve(audio); }, { once: true });
+      audio.addEventListener("error", () => { clipCache[key] = null; resolve(null); }, { once: true });
+      audio.load();
+    });
+  }
+
+  // Play one sound: real clip if available, else TTS. Resolves when done.
+  function playSound(s) {
+    return new Promise(async (resolve) => {
+      if (s.key) {
+        const clip = await getClip(s.key);
+        if (clip) {
+          const a = clip.cloneNode();
+          a.onended = a.onerror = () => resolve();
+          a.play().catch(() => resolve());
+          return;
+        }
+      }
+      if (!s.speech) return resolve();        // silent magic-e
+      if (!("speechSynthesis" in window)) return resolve();
+      const u = new SpeechSynthesisUtterance(s.speech);
+      u.lang = "en-GB"; u.rate = 0.7;
+      pickEnglishVoice(u);
+      u.onend = u.onerror = () => resolve();
+      window.speechSynthesis.speak(u);
+    });
+  }
+
+  // Play the whole blended word: clip audio/words/<word>.mp3 if present, else TTS.
+  function playWhole(word) {
+    return new Promise(async (resolve) => {
+      const clip = await getClip("../words/" + word);
+      if (clip) { const a = clip.cloneNode(); a.onended = a.onerror = () => resolve(); a.play().catch(() => resolve()); return; }
+      if (!("speechSynthesis" in window)) return resolve();
+      const u = new SpeechSynthesisUtterance(word);
+      u.lang = "en-GB"; u.rate = 0.85;
+      pickEnglishVoice(u);
+      u.onend = u.onerror = () => resolve();
+      window.speechSynthesis.speak(u);
+    });
+  }
+
+  // 拆音 / Fred Talk — sound each grapheme in turn (clip or TTS), highlighting
+  // as it plays, then blend the whole word.
+  let segmenting = false;
+  async function segmentWord() {
     const item = current();
-    if (!item || !("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
+    if (!item || segmenting) return;
+    segmenting = true;
+    stopPlayback();
 
     const spans = el.word.querySelectorAll(".gp");
     const sounds = buildSounds(item.graphemes || [item.word]);
 
-    sounds.forEach((s) => {
-      const u = new SpeechSynthesisUtterance(s.speech);
-      u.lang = "en-GB";
-      u.rate = 0.7;
-      pickEnglishVoice(u);
-      u.onstart = () => highlight(spans, s.indices);
-      window.speechSynthesis.speak(u);
-    });
-
-    // Blend: read the whole word at the end.
-    const whole = new SpeechSynthesisUtterance(item.word);
-    whole.lang = "en-GB";
-    whole.rate = 0.85;
-    pickEnglishVoice(whole);
-    whole.onstart = () => highlight(spans, []);
-    whole.onend = () => clearHighlight(spans);
-    window.speechSynthesis.speak(whole);
+    for (const s of sounds) {
+      if (!segmenting) break;            // aborted by navigation/stop
+      highlight(spans, s.indices);
+      await playSound(s);
+    }
+    if (segmenting) {
+      highlight(spans, []);
+      await playWhole(item.word);
+    }
+    clearHighlight(spans);
+    segmenting = false;
   }
 
   function highlight(spans, indices) {
@@ -289,6 +345,7 @@
   }
 
   function stopPlayback() {
+    segmenting = false;                   // abort any running 拆音 sequence
     if (currentAudio) {
       currentAudio.pause();
       currentAudio = null;
