@@ -14,7 +14,9 @@ word is **`quemp`** — this app uses the official words.
 - 🟥 **開始錄音** — record the child reading the word (MediaRecorder API)
 - 🟧 **聽自己讀音** — play the recording back
 - 🟦 **聽正確讀音** — text-to-speech in `en-GB` (Web Speech API)
-- 🟪 **聽拆音 (Fred Talk)** — say each sound, highlight it, then blend the word
+- 🟪 **聽拆音 (Fred Talk)** — say each sound, highlight it, then blend the word.
+  Uses real audio clips if present in [`audio/sounds/`](audio/sounds/), otherwise
+  falls back to browser TTS. See that folder's README to add clips.
 - ⬅️ ➡️ **上一個 / 下一個** — navigate (also Left/Right arrow keys; Space = speak)
 - 🔀 **洗牌** — reshuffle the deck (random order, like the original)
 
