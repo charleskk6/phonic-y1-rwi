@@ -24,6 +24,7 @@
     card: document.getElementById("card"),
     starBtn: document.getElementById("starBtn"),
     starModeBtn: document.getElementById("starModeBtn"),
+    clearStarsBtn: document.getElementById("clearStarsBtn"),
   };
 
   // ---------- State ----------
@@ -135,6 +136,7 @@
       ? `↩️ 全部字 (返回)`
       : `⭐ 只練星星 (${starred.size})`;
     el.starModeBtn.disabled = !starMode && starred.size === 0;
+    el.clearStarsBtn.disabled = starred.size === 0;
   }
 
   function toggleStarMode() {
@@ -150,6 +152,16 @@
     starMode = false;
     buildDeck();
     el.card.dataset.starmode = "";
+    updateStarModeBtn();
+    render();
+  }
+
+  function clearAllStars() {
+    if (starred.size === 0) return;
+    if (!confirm(`清除全部 ${starred.size} 個星星字？`)) return;
+    starred.clear();
+    saveStars();
+    if (starMode) { exitStarMode(); return; }   // exitStarMode re-renders
     updateStarModeBtn();
     render();
   }
@@ -432,6 +444,7 @@
   el.shuffleBtn.addEventListener("click", () => { if (isRecording) stopRecording(); buildDeck(); render(); });
   el.starBtn.addEventListener("click", toggleStar);
   el.starModeBtn.addEventListener("click", () => { if (isRecording) stopRecording(); toggleStarMode(); });
+  el.clearStarsBtn.addEventListener("click", () => { if (isRecording) stopRecording(); clearAllStars(); });
 
   // Keyboard: ← prev, → next, ↑ toggle star (matches the original app).
   document.addEventListener("keydown", (e) => {
