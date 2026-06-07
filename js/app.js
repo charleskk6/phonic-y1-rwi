@@ -133,7 +133,7 @@
 
   function updateStarModeBtn() {
     el.starModeBtn.textContent = starMode
-      ? `↩️ 全部字 (返回)`
+      ? `↩️ 全部字 (${starred.size})`
       : `⭐ 只練星星 (${starred.size})`;
     el.starModeBtn.disabled = !starMode && starred.size === 0;
     el.clearStarsBtn.disabled = starred.size === 0;
