@@ -22,12 +22,27 @@
     shuffleBtn: document.getElementById("shuffleBtn"),
     progressFill: document.getElementById("progressFill"),
     card: document.getElementById("card"),
+    starBtn: document.getElementById("starBtn"),
+    starModeBtn: document.getElementById("starModeBtn"),
   };
 
   // ---------- State ----------
   let deck = [];          // shuffled copy of the word bank
   let index = 0;          // current position in the deck
   const recordings = {};  // word -> object URL of the child's recording
+  let starMode = false;   // when true, deck = only starred words
+
+  // ---------- Starred words (persisted) ----------
+  const STAR_KEY = "pq_starred";
+  let starred = loadStars();
+
+  function loadStars() {
+    try { return new Set(JSON.parse(localStorage.getItem(STAR_KEY)) || []); }
+    catch (e) { return new Set(); }
+  }
+  function saveStars() {
+    try { localStorage.setItem(STAR_KEY, JSON.stringify([...starred])); } catch (e) {}
+  }
 
   // ---------- Deck helpers ----------
   function shuffle(arr) {
@@ -40,7 +55,9 @@
   }
 
   function buildDeck() {
-    deck = shuffle(window.WORD_BANK || []);
+    const bank = window.WORD_BANK || [];
+    const pool = starMode ? bank.filter((w) => starred.has(w.word)) : bank;
+    deck = shuffle(pool);
     index = 0;
   }
 
@@ -79,10 +96,62 @@
       el.word.appendChild(span);
     });
 
+    // Reflect star state on the current word.
+    renderStar(item.word);
+
     // Reset record/playback UI per card.
     const hasRecording = Boolean(recordings[item.word]);
     el.playOwnBtn.disabled = !hasRecording;
     setStatus(hasRecording ? "已有錄音 — 可重錄或回放" : "錄音特訓面版：準備就緒");
+  }
+
+  // ---------- Stars ----------
+  function renderStar(word) {
+    const on = starred.has(word);
+    el.starBtn.textContent = on ? "⭐" : "☆";
+    el.starBtn.classList.toggle("is-on", on);
+    el.starBtn.setAttribute("aria-pressed", on ? "true" : "false");
+  }
+
+  function toggleStar() {
+    const item = current();
+    if (!item) return;
+    if (starred.has(item.word)) starred.delete(item.word);
+    else starred.add(item.word);
+    saveStars();
+    renderStar(item.word);
+    updateStarModeBtn();
+
+    // If we're in star mode and just removed the last/this star, rebuild.
+    if (starMode && !starred.has(item.word)) {
+      if (starred.size === 0) { exitStarMode(); return; }
+      buildDeck();
+      render();
+    }
+  }
+
+  function updateStarModeBtn() {
+    el.starModeBtn.textContent = starMode
+      ? `↩️ 全部字 (返回)`
+      : `⭐ 只練星星 (${starred.size})`;
+    el.starModeBtn.disabled = !starMode && starred.size === 0;
+  }
+
+  function toggleStarMode() {
+    if (!starMode && starred.size === 0) return;
+    starMode = !starMode;
+    buildDeck();
+    el.card.dataset.starmode = starMode ? "1" : "";
+    updateStarModeBtn();
+    render();
+  }
+
+  function exitStarMode() {
+    starMode = false;
+    buildDeck();
+    el.card.dataset.starmode = "";
+    updateStarModeBtn();
+    render();
   }
 
   function setStatus(text, recording) {
@@ -361,15 +430,19 @@
   el.prevBtn.addEventListener("click", () => { if (isRecording) stopRecording(); go(-1); });
   el.nextBtn.addEventListener("click", () => { if (isRecording) stopRecording(); go(1); });
   el.shuffleBtn.addEventListener("click", () => { if (isRecording) stopRecording(); buildDeck(); render(); });
+  el.starBtn.addEventListener("click", toggleStar);
+  el.starModeBtn.addEventListener("click", () => { if (isRecording) stopRecording(); toggleStarMode(); });
 
-  // Keyboard: ← prev, → next (matches the original app).
+  // Keyboard: ← prev, → next, ↑ toggle star (matches the original app).
   document.addEventListener("keydown", (e) => {
     if (e.key === "ArrowLeft") go(-1);
     else if (e.key === "ArrowRight") go(1);
+    else if (e.key === "ArrowUp") { e.preventDefault(); toggleStar(); }
     else if (e.key === " ") { e.preventDefault(); speakWord(); }
   });
 
   // ---------- Init ----------
   buildDeck();
+  updateStarModeBtn();
   render();
 })();
