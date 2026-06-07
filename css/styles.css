@@ -243,13 +243,21 @@ body.unlocked #gate { display: none; }
 .btn--shuffle { background: var(--green); flex: 0 0 64px; font-size: 22px; }
 
 /* ---------- Star practice mode ---------- */
+.starbar { display: flex; gap: 11px; margin-top: 11px; }
 .btn--starmode {
-  width: 100%;
-  margin-top: 11px;
+  flex: 1;
   background: linear-gradient(135deg, #ffd86b, #f5a623);
   color: #5a3d00;
 }
 .btn--starmode:disabled { opacity: .4; }
+.btn--clearstars {
+  flex: 0 0 64px;
+  font-size: 22px;
+  background: var(--glass);
+  border: 1px solid var(--glass-bd);
+  box-shadow: none;
+}
+.btn--clearstars:disabled { opacity: .4; }
 /* highlight the whole card while in star-only mode */
 .card[data-starmode="1"] {
   box-shadow: 0 0 0 3px #f5a623, 0 18px 40px rgba(0,0,0,.35);
