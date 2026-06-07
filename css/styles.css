@@ -251,8 +251,7 @@ body.unlocked #gate { display: none; }
 }
 .btn--starmode:disabled { opacity: .4; }
 .btn--clearstars {
-  flex: 0 0 64px;
-  font-size: 22px;
+  flex: 0 0 auto;
   background: var(--glass);
   border: 1px solid var(--glass-bd);
   box-shadow: none;
